@@ -1,0 +1,6 @@
+{
+  "name": "ValuMetrics DCF Terminal",
+  "description": "Advanced Discounted Cash Flow (DCF) valuation terminal for any stock with real-time financial projections, WACC calculator, and interactive sensitivity modeling.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
