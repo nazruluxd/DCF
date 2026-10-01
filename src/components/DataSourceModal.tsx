@@ -36,14 +36,66 @@ export const DataSourceModal: React.FC<DataSourceModalProps> = ({
     if (isOpen) {
       setLoading(true);
       fetch('/api/providers/status')
-        .then((res) => res.json())
+        .then(async (res) => {
+          if (!res.ok) throw new Error('Static environment');
+          return res.json();
+        })
         .then((data) => {
           if (data.providers) {
             setProviderStatuses(data.providers);
             setActiveDetected(data.activeProvider);
           }
         })
-        .catch((err) => console.error('Failed to load provider status:', err))
+        .catch(() => {
+          // Fallback list for static GitHub Pages hosting
+          setProviderStatuses([
+            {
+              id: 'fmp',
+              name: 'Financial Modeling Prep (FMP)',
+              configured: false,
+              freeTier: '250 requests/day',
+              description: 'Official SEC 10-K/10-Q cash flow statements, historical FCF, balance sheet debt, cash, and automated DCF metrics.',
+              website: 'https://site.financialmodelingprep.com/developer/docs',
+              envKey: 'FMP_API_KEY',
+            },
+            {
+              id: 'finnhub',
+              name: 'Finnhub Stock API',
+              configured: false,
+              freeTier: '60 calls/minute',
+              description: 'Institutional-grade real-time market quotes, balance sheet metrics, company profiles, and beta.',
+              website: 'https://finnhub.io/',
+              envKey: 'FINNHUB_API_KEY',
+            },
+            {
+              id: 'alphavantage',
+              name: 'Alpha Vantage',
+              configured: false,
+              freeTier: '25 requests/day',
+              description: 'Global equity overview, historical cash flow statements, and key financial ratios.',
+              website: 'https://www.alphavantage.co/support/#api-key',
+              envKey: 'ALPHA_VANTAGE_API_KEY',
+            },
+            {
+              id: 'yahoo',
+              name: 'Yahoo Finance Live Quotes',
+              configured: true,
+              freeTier: 'Unlimited Public',
+              description: 'Real-time live prices, 52-week trading range, exchange data, and currency quotes.',
+              website: 'https://finance.yahoo.com',
+              envKey: 'No API Key Required (Public Chart API)',
+            },
+            {
+              id: 'gemini',
+              name: 'Google Gemini 3.8 Flash Grounding',
+              configured: true,
+              freeTier: 'Google AI Studio Tier',
+              description: 'Deep qualitative & quantitative equity research, structural bullish/bearish catalysts, and intelligent DCF synthesis.',
+              website: 'https://aistudio.google.com',
+              envKey: 'GEMINI_API_KEY',
+            },
+          ]);
+        })
         .finally(() => setLoading(false));
     }
   }, [isOpen]);

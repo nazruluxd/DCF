@@ -83,20 +83,49 @@ export const Header: React.FC<HeaderProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Fetch suggestions
+  // Fetch suggestions with static fallback for GitHub Pages
   useEffect(() => {
-    if (searchInput.trim().length > 0) {
-      fetch(`/api/stock-search?q=${encodeURIComponent(searchInput)}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.suggestions) {
-            setSuggestions(data.suggestions);
-          }
-        })
-        .catch(() => {});
-    } else {
+    const q = searchInput.trim().toLowerCase();
+    if (!q) {
       setSuggestions([]);
+      return;
     }
+
+    const staticList = [
+      { symbol: 'NFLX', name: 'Netflix, Inc.', sector: 'Communication Services' },
+      { symbol: 'AAPL', name: 'Apple Inc.', sector: 'Technology' },
+      { symbol: 'NVDA', name: 'NVIDIA Corporation', sector: 'Semiconductors' },
+      { symbol: 'TSLA', name: 'Tesla, Inc.', sector: 'Automotive & Clean Energy' },
+      { symbol: 'MSFT', name: 'Microsoft Corporation', sector: 'Software' },
+      { symbol: 'AMZN', name: 'Amazon.com, Inc.', sector: 'Consumer Cyclical' },
+      { symbol: 'GOOGL', name: 'Alphabet Inc.', sector: 'Communication Services' },
+      { symbol: 'META', name: 'Meta Platforms, Inc.', sector: 'Communication Services' },
+      { symbol: 'PLTR', name: 'Palantir Technologies', sector: 'Software & AI' },
+      { symbol: 'KO', name: 'The Coca-Cola Company', sector: 'Consumer Defensive' },
+      { symbol: 'JNJ', name: 'Johnson & Johnson', sector: 'Healthcare' },
+      { symbol: 'JPM', name: 'JPMorgan Chase & Co.', sector: 'Financial Services' },
+      { symbol: 'BABA', name: 'Alibaba Group', sector: 'Consumer Cyclical' },
+      { symbol: 'DIS', name: 'The Walt Disney Company', sector: 'Entertainment' },
+      { symbol: 'ASML', name: 'ASML Holding N.V.', sector: 'Semiconductors' },
+    ];
+
+    fetch(`/api/stock-search?q=${encodeURIComponent(searchInput)}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Static environment');
+        return res.json();
+      })
+      .then((data) => {
+        if (data.suggestions) {
+          setSuggestions(data.suggestions);
+        }
+      })
+      .catch(() => {
+        // Fallback for GitHub Pages static hosting
+        const filtered = staticList.filter(
+          (s) => s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)
+        );
+        setSuggestions(filtered);
+      });
   }, [searchInput]);
 
   const handleSubmit = (e: React.FormEvent, forceAi = false) => {
