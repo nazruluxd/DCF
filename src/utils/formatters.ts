@@ -45,3 +45,20 @@ export function formatNumber(val: number | undefined | null, decimals: number = 
     maximumFractionDigits: decimals,
   }).format(val);
 }
+
+/**
+ * Formats dividend yield safely regardless of whether data source stored it as decimal (0.015) or percentage (1.5)
+ */
+export function formatDividendYield(val: number | undefined | null, decimals: number = 2): string {
+  if (val === undefined || val === null || isNaN(val) || val <= 0) return '0.00%';
+  const pct = val <= 0.25 ? val * 100 : val;
+  return `${pct.toFixed(decimals)}%`;
+}
+
+/**
+ * Extracts normalized decimal dividend yield (e.g. 0.015 for 1.5%)
+ */
+export function getDividendYieldDecimal(val: number | undefined | null): number {
+  if (val === undefined || val === null || isNaN(val) || val <= 0) return 0;
+  return val <= 0.25 ? val : val / 100;
+}

@@ -1,4 +1,5 @@
 import { CashFlowYear, DCFAssumptions, DCFResult, StockFinancials } from '../types/dcf';
+import { getDividendYieldDecimal } from './formatters';
 
 /**
  * Calculates CAPM Cost of Equity: Ke = Rf + Beta * ERP
@@ -104,9 +105,19 @@ export function runDCFCalculation(
   // Value of Equity = Value of Operations + NonOpAssets - TotalDebt
   const valueOfEquity = valueOfOperationsTotalDollars + financials.nonOpAssets - financials.totalDebt;
 
-  // Intrinsic Value Per Share
+  // Base Intrinsic Value Per Share (Pre-DRIP)
   const shares = Math.max(1, financials.sharesOutstanding);
-  const intrinsicValuePerShare = Math.max(0, valueOfEquity / shares);
+  const baseIntrinsicValuePerShare = Math.max(0, valueOfEquity / shares);
+
+  // Dividend Reinvestment (DRIP) Compounding Calculation
+  const divYieldDecimal = getDividendYieldDecimal(financials.dividendYield);
+  const includeDRIP = Boolean(assumptions.includeDividendReinvestment);
+  const dripMultiplier = includeDRIP && divYieldDecimal > 0 
+    ? Math.pow(1 + divYieldDecimal, years) 
+    : 1;
+
+  const intrinsicValuePerShare = Number((baseIntrinsicValuePerShare * dripMultiplier).toFixed(2));
+  const dividendReinvestmentBoost = Number((intrinsicValuePerShare - baseIntrinsicValuePerShare).toFixed(2));
 
   // Margin of safety / upside percentage
   const marketPrice = Math.max(0.01, financials.marketPrice);
@@ -159,7 +170,8 @@ export function runDCFCalculation(
       const testPvTV = testTV / Math.pow(1 + w, years);
       const testValOps = (testSumPv + testPvTV) * multiplier;
       const testEquity = testValOps + financials.nonOpAssets - financials.totalDebt;
-      const testIV = Math.max(0, testEquity / shares);
+      const testBaseIV = Math.max(0, testEquity / shares);
+      const testIV = testBaseIV * dripMultiplier;
 
       row.push(Number(testIV.toFixed(2)));
     }
@@ -178,6 +190,10 @@ export function runDCFCalculation(
     marketPrice,
     upsideDownsidePct,
     isUndervalued,
+    includeDividendReinvestment: includeDRIP,
+    dividendYieldUsed: divYieldDecimal,
+    dripMultiplier,
+    dividendReinvestmentBoost,
     sensitivityMatrix: {
       growthRates,
       waccRates,

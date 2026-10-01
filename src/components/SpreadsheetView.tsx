@@ -4,7 +4,7 @@ import {
   DCFResult,
   StockFinancials
 } from '../types/dcf';
-import { formatCurrency, formatNumber, formatPercent, formatRawPercent } from '../utils/formatters';
+import { formatCurrency, formatNumber, formatPercent, formatRawPercent, formatDividendYield } from '../utils/formatters';
 import {
   TrendingUp,
   TrendingDown,
@@ -460,6 +460,31 @@ export const SpreadsheetView: React.FC<SpreadsheetViewProps> = ({
                     </td>
                   </tr>
 
+                  {/* Annual Dividend Yield */}
+                  <tr className="border-b border-slate-300 bg-amber-50/60">
+                    <td className="bg-amber-100/80 text-slate-900 font-bold px-3 py-1.5 border-r border-slate-400 text-xs">
+                      Annual dividend yield
+                    </td>
+                    <td className="px-3 py-1.5 text-right font-bold text-amber-900 text-xs font-mono">
+                      {formatDividendYield(financials.dividendYield)}
+                    </td>
+                  </tr>
+
+                  {/* Dividend Reinvestment (DRIP) if active */}
+                  {assumptions.includeDividendReinvestment && (
+                    <tr className="border-b border-slate-300 bg-emerald-50/70">
+                      <td className="bg-emerald-100 text-emerald-950 font-bold px-3 py-1.5 border-r border-slate-400 text-xs flex items-center justify-between">
+                        <span>Dividend Reinvestment (DRIP)</span>
+                        <span className="text-[10px] bg-emerald-600 text-white px-1.5 py-0.2 rounded font-mono">
+                          ACTIVE
+                        </span>
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-bold text-emerald-800 text-xs font-mono">
+                        +{(( (dcfResult.dripMultiplier || 1) - 1) * 100).toFixed(1)}% (+${dcfResult.dividendReinvestmentBoost?.toFixed(2) || '0.00'})
+                      </td>
+                    </tr>
+                  )}
+
                   {/* Intrinsic value per share - Prominent Red Row */}
                   <tr className="bg-[#f4b084] border-t-2 border-b-2 border-slate-500">
                     <td className="text-slate-950 font-black px-3 py-2 border-r border-slate-500 text-xs uppercase tracking-wider">
@@ -483,6 +508,13 @@ export const SpreadsheetView: React.FC<SpreadsheetViewProps> = ({
               <div className="text-right">
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Market Price</span>
                 <span className="text-sm font-black text-slate-900">${financials.marketPrice.toFixed(2)}</span>
+              </div>
+
+              <div className="text-right pl-3 border-l border-slate-200">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Annual Div Yield</span>
+                <span className="text-sm font-bold text-amber-700 font-mono">
+                  {formatDividendYield(financials.dividendYield)}
+                </span>
               </div>
 
               <div className="text-right pl-3 border-l border-slate-200">

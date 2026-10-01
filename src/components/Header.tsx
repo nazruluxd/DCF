@@ -14,7 +14,8 @@ import {
   Building2,
   RefreshCw,
   Database,
-  Globe2
+  Globe2,
+  CandlestickChart
 } from 'lucide-react';
 import { StockFinancials } from '../types/dcf';
 
@@ -22,8 +23,8 @@ interface HeaderProps {
   currentFinancials: StockFinancials;
   onSearch: (symbolOrName: string, forceAi?: boolean) => void;
   isLoading: boolean;
-  viewMode: 'spreadsheet' | 'analytics';
-  onToggleViewMode: (mode: 'spreadsheet' | 'analytics') => void;
+  viewMode: 'spreadsheet' | 'analytics' | 'chart';
+  onToggleViewMode: (mode: 'spreadsheet' | 'analytics' | 'chart') => void;
   activeScenario: 'base' | 'bull' | 'bear';
   onSelectScenario: (scenario: 'base' | 'bull' | 'bear') => void;
   onOpenFormulas: () => void;
@@ -246,10 +247,22 @@ export const Header: React.FC<HeaderProps> = ({
                   ? 'bg-emerald-600 text-white shadow'
                   : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
               }`}
-              title="Visual Analytics & Charts View"
+              title="Visual Analytics & DCF Charts View"
             >
               <BarChart3 className="w-3.5 h-3.5" />
-              <span>Terminal & Charts</span>
+              <span>Analytics</span>
+            </button>
+            <button
+              onClick={() => onToggleViewMode('chart')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${
+                viewMode === 'chart'
+                  ? 'bg-emerald-600 text-white shadow'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+              }`}
+              title="Advanced Real-Time TradingView Chart"
+            >
+              <CandlestickChart className="w-3.5 h-3.5" />
+              <span>Real-Time Chart</span>
             </button>
           </div>
 

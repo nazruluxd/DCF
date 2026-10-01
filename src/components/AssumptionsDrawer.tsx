@@ -1,6 +1,7 @@
 import React from 'react';
-import { X, SlidersHorizontal, RotateCcw, Check } from 'lucide-react';
+import { X, SlidersHorizontal, RotateCcw, Check, Coins, Info } from 'lucide-react';
 import { DCFAssumptions, StockFinancials } from '../types/dcf';
+import { formatDividendYield, getDividendYieldDecimal } from '../utils/formatters';
 
 interface AssumptionsDrawerProps {
   isOpen: boolean;
@@ -232,6 +233,92 @@ export const AssumptionsDrawer: React.FC<AssumptionsDrawerProps> = ({
                 className="w-full accent-purple-500 cursor-pointer"
               />
             </div>
+          </div>
+
+          {/* Dividend Policy & Reinvestment Section */}
+          <div className="space-y-4 bg-slate-800/40 p-4 rounded-xl border border-slate-800">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-sm text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Coins className="w-4 h-4 text-amber-400" />
+                  <span>Dividend Reinvestment (DRIP)</span>
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Compound intrinsic equity value via DRIP
+                </p>
+              </div>
+
+              {/* The Toggle Switch */}
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={Boolean(assumptions.includeDividendReinvestment)}
+                  onChange={(e) => onUpdateAssumption('includeDividendReinvestment', e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+              </label>
+            </div>
+
+            {/* Dividend Yield Details */}
+            <div className="bg-slate-900/80 p-3 rounded-lg border border-slate-800 space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-400">Stock Annual Div Yield:</span>
+                <span className="font-mono font-bold text-amber-300">
+                  {formatDividendYield(financials.dividendYield)}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-400">Projection Horizon:</span>
+                <span className="font-mono text-slate-200">
+                  {assumptions.projectionYears || 7} Years
+                </span>
+              </div>
+
+              {assumptions.includeDividendReinvestment && (
+                <div className="pt-2 border-t border-slate-800">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-300 font-semibold">DRIP Compounding Factor:</span>
+                    <span className="font-mono font-bold text-emerald-400">
+                      {Math.pow(1 + getDividendYieldDecimal(financials.dividendYield), assumptions.projectionYears || 7).toFixed(3)}x
+                      {' '}
+                      (+{((Math.pow(1 + getDividendYieldDecimal(financials.dividendYield), assumptions.projectionYears || 7) - 1) * 100).toFixed(1)}%)
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
+                    Automatically reinvests annual dividend payouts into equity shares, compounding intrinsic value over the {assumptions.projectionYears || 7}-year holding period.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* If dividend yield is 0, provide an interactive test slider to simulate a dividend yield */}
+            {(!financials.dividendYield || financials.dividendYield <= 0) && (
+              <div className="p-2.5 rounded-lg bg-amber-950/30 border border-amber-800/40 text-[11px] text-amber-200/90 space-y-2">
+                <div className="flex items-center gap-1.5 font-semibold text-amber-300">
+                  <Info className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{financials.symbol} pays no dividend</span>
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  You can simulate an annual dividend yield below to test DRIP compounding:
+                </p>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min="0"
+                    max="0.08"
+                    step="0.0025"
+                    value={getDividendYieldDecimal(financials.dividendYield)}
+                    onChange={(e) => onUpdateFinancial('dividendYield', parseFloat(e.target.value))}
+                    className="w-full accent-amber-500 cursor-pointer"
+                  />
+                  <span className="font-mono font-bold text-amber-300 whitespace-nowrap">
+                    {(getDividendYieldDecimal(financials.dividendYield) * 100).toFixed(2)}%
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
         </div>

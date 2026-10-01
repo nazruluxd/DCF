@@ -100,9 +100,18 @@ async function startServer() {
       // Check external real financial APIs first if keys are configured
       const fmpKey = process.env.FMP_API_KEY?.trim();
       const finnhubKey = process.env.FINNHUB_API_KEY?.trim();
-      const avKey = process.env.ALPHA_VANTAGE_API_KEY?.trim();
+      const avKey = process.env.ALPHA_VANTAGE_API_KEY?.trim() || process.env.YAHOO_API_KEY?.trim() || 'MTWZLQGCLBYSAKR4';
 
-      // 1. Financial Modeling Prep (FMP)
+      // 1. Alpha Vantage (Active dedicated key)
+      if (avKey && (requestedProvider === 'auto' || requestedProvider === 'alphavantage')) {
+        console.log(`Querying Alpha Vantage for ${cleanQuery}...`);
+        const avResult = await fetchAlphaVantageData(cleanQuery, avKey);
+        if (avResult) {
+          return res.json(avResult);
+        }
+      }
+
+      // 2. Financial Modeling Prep (FMP)
       if (fmpKey && fmpKey !== 'YOUR_FMP_API_KEY' && (requestedProvider === 'auto' || requestedProvider === 'fmp')) {
         console.log(`Querying Financial Modeling Prep for ${cleanQuery}...`);
         const fmpResult = await fetchFMPData(cleanQuery, fmpKey);
@@ -111,21 +120,12 @@ async function startServer() {
         }
       }
 
-      // 2. Finnhub
+      // 3. Finnhub
       if (finnhubKey && finnhubKey !== 'YOUR_FINNHUB_API_KEY' && (requestedProvider === 'auto' || requestedProvider === 'finnhub')) {
         console.log(`Querying Finnhub for ${cleanQuery}...`);
         const finnhubResult = await fetchFinnhubData(cleanQuery, finnhubKey);
         if (finnhubResult) {
           return res.json(finnhubResult);
-        }
-      }
-
-      // 3. Alpha Vantage
-      if (avKey && avKey !== 'YOUR_ALPHA_VANTAGE_API_KEY' && (requestedProvider === 'auto' || requestedProvider === 'alphavantage')) {
-        console.log(`Querying Alpha Vantage for ${cleanQuery}...`);
-        const avResult = await fetchAlphaVantageData(cleanQuery, avKey);
-        if (avResult) {
-          return res.json(avResult);
         }
       }
 

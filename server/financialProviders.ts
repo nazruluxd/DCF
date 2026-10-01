@@ -21,11 +21,20 @@ export function getProvidersStatus(): {
 } {
   const fmpKey = process.env.FMP_API_KEY?.trim();
   const finnhubKey = process.env.FINNHUB_API_KEY?.trim();
-  const avKey = process.env.ALPHA_VANTAGE_API_KEY?.trim();
+  const avKey = process.env.ALPHA_VANTAGE_API_KEY?.trim() || process.env.YAHOO_API_KEY?.trim() || 'MTWZLQGCLBYSAKR4';
   const geminiKey = process.env.GEMINI_API_KEY?.trim();
-  const preferred = (process.env.DATA_PROVIDER || 'auto').toLowerCase();
+  const preferred = (process.env.DATA_PROVIDER || 'alphavantage').toLowerCase();
 
   const providers: ProviderStatus[] = [
+    {
+      id: 'alphavantage',
+      name: 'Alpha Vantage API',
+      configured: Boolean(avKey),
+      freeTier: 'Dedicated Access Key Active',
+      description: 'Institutional-grade equity overview, market quotes, SEC filings, and financial metrics.',
+      website: 'https://www.alphavantage.co',
+      envKey: 'ALPHA_VANTAGE_API_KEY',
+    },
     {
       id: 'fmp',
       name: 'Financial Modeling Prep (FMP)',
@@ -43,15 +52,6 @@ export function getProvidersStatus(): {
       description: 'Institutional-grade real-time market quotes, balance sheet metrics, company profiles, and beta.',
       website: 'https://finnhub.io/',
       envKey: 'FINNHUB_API_KEY',
-    },
-    {
-      id: 'alphavantage',
-      name: 'Alpha Vantage',
-      configured: Boolean(avKey && avKey !== 'YOUR_ALPHA_VANTAGE_API_KEY'),
-      freeTier: '25 requests/day',
-      description: 'Global equity overview, historical cash flow statements, and key financial ratios.',
-      website: 'https://www.alphavantage.co/support/#api-key',
-      envKey: 'ALPHA_VANTAGE_API_KEY',
     },
     {
       id: 'yahoo',
@@ -73,15 +73,12 @@ export function getProvidersStatus(): {
     },
   ];
 
-  let active = 'yahoo';
-  if (fmpKey && fmpKey !== 'YOUR_FMP_API_KEY') active = 'fmp';
-  else if (finnhubKey && finnhubKey !== 'YOUR_FINNHUB_API_KEY') active = 'finnhub';
-  else if (avKey && avKey !== 'YOUR_ALPHA_VANTAGE_API_KEY') active = 'alphavantage';
-  else if (geminiKey && geminiKey !== 'MY_GEMINI_API_KEY') active = 'gemini';
-
-  if (preferred !== 'auto') {
-    active = preferred;
-  }
+  let active = 'alphavantage';
+  if (preferred === 'fmp' && fmpKey && fmpKey !== 'YOUR_FMP_API_KEY') active = 'fmp';
+  else if (preferred === 'finnhub' && finnhubKey && finnhubKey !== 'YOUR_FINNHUB_API_KEY') active = 'finnhub';
+  else if (preferred === 'gemini' && geminiKey && geminiKey !== 'MY_GEMINI_API_KEY') active = 'gemini';
+  else if (preferred === 'yahoo') active = 'yahoo';
+  else if (avKey) active = 'alphavantage';
 
   return { activeProvider: active, providers };
 }
@@ -223,6 +220,7 @@ export async function fetchFMPData(symbol: string, apiKey: string): Promise<Prov
         sharesOutstanding: shares,
         epsTTM: Number(profile.lastDiv) || 3.5,
         peTTM: Number(profile.mktCap) ? Number((Number(profile.mktCap) / (latestFcf * 1_000_000_000 * 1.2)).toFixed(2)) : 22.0,
+        dividendYield: Number(((Number(profile.lastDiv) || 0) / (price || 1) * 100).toFixed(2)),
         baseFreeCashFlow: baseFcf,
         unitScale: 'billions',
         bullishFactors: [
@@ -343,6 +341,7 @@ export async function fetchFinnhubData(symbol: string, apiKey: string): Promise<
         sharesOutstanding: shares,
         epsTTM: Number(metrics.epsTTM) || Number((price / 25).toFixed(2)),
         peTTM: Number(metrics.peTTM) || 25.0,
+        dividendYield: Number((Number(metrics.dividendYieldIndicatedAnnual) || Number(metrics.currentDividendYieldTTM) || 0).toFixed(2)),
         baseFreeCashFlow: baseFcf,
         unitScale: 'billions',
         bullishFactors: [
@@ -394,7 +393,7 @@ export async function fetchAlphaVantageData(symbol: string, apiKey: string): Pro
 
     // Company Overview
     const overviewRes = await fetch(`https://www.alphavantage.co/query?function=OVERVIEW&symbol=${sym}&apikey=${apiKey}`, {
-      signal: AbortSignal.timeout(2500),
+      signal: AbortSignal.timeout(6000),
     });
     if (!overviewRes.ok) return null;
     const overview = await overviewRes.json();
@@ -402,7 +401,7 @@ export async function fetchAlphaVantageData(symbol: string, apiKey: string): Pro
 
     // Global Quote
     const quoteRes = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${sym}&apikey=${apiKey}`, {
-      signal: AbortSignal.timeout(2500),
+      signal: AbortSignal.timeout(6000),
     });
     const quoteData = quoteRes.ok ? await quoteRes.json() : {};
     const quote = quoteData['Global Quote'] || {};
@@ -456,6 +455,7 @@ export async function fetchAlphaVantageData(symbol: string, apiKey: string): Pro
         sharesOutstanding: shares,
         epsTTM: Number(overview.EPS) || 3.5,
         peTTM: Number(overview.PERatio) || 24.0,
+        dividendYield: Number(((Number(overview.DividendYield) || (price > 0 && Number(overview.DividendPerShare) ? Number(overview.DividendPerShare) / price : 0)) * 100).toFixed(2)),
         baseFreeCashFlow: baseFcf,
         unitScale: 'billions',
         bullishFactors: [

@@ -1,6 +1,6 @@
 import React from 'react';
 import { DCFAssumptions, DCFResult, StockFinancials } from '../types/dcf';
-import { formatCurrency, formatPercent } from '../utils/formatters';
+import { formatCurrency, formatPercent, formatDividendYield } from '../utils/formatters';
 import {
   TrendingUp,
   TrendingDown,
@@ -10,19 +10,22 @@ import {
   ArrowRight,
   PieChart,
   Activity,
-  Award
+  Award,
+  CandlestickChart
 } from 'lucide-react';
 
 interface AnalyticsViewProps {
   financials: StockFinancials;
   assumptions: DCFAssumptions;
   dcfResult: DCFResult;
+  onSwitchToChart?: () => void;
 }
 
 export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   financials,
   assumptions,
   dcfResult,
+  onSwitchToChart,
 }) => {
   const maxFcf = Math.max(...dcfResult.cashFlows.map((c) => c.fcf), 1);
 
@@ -42,11 +45,18 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
             DCF Valuation Verdict
           </span>
-          <div className="flex items-baseline gap-3 my-2">
-            <span className="text-3xl font-black text-white">
-              ${dcfResult.intrinsicValuePerShare.toFixed(2)}
-            </span>
-            <span className="text-xs text-slate-400">Intrinsic / Share</span>
+          <div className="flex items-baseline justify-between my-2">
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-black text-white">
+                ${dcfResult.intrinsicValuePerShare.toFixed(2)}
+              </span>
+              <span className="text-xs text-slate-400">Intrinsic / Share</span>
+            </div>
+            {assumptions.includeDividendReinvestment && (
+              <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono font-semibold" title={`Includes DRIP +$${dcfResult.dividendReinvestmentBoost?.toFixed(2) || '0.00'}`}>
+                DRIP Active
+              </span>
+            )}
           </div>
 
           <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
@@ -107,12 +117,41 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
           <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-300">
             <span>Beta: <strong>{assumptions.beta.toFixed(2)}</strong></span>
-            <span>CAPM: <strong>{formatPercent(assumptions.costOfEquity, 2)}</strong></span>
+            <span>Div Yield: <strong className="text-amber-300">{formatDividendYield(financials.dividendYield)}</strong></span>
             <span>Terminal g: <strong>{formatPercent(assumptions.growthLT, 1)}</strong></span>
           </div>
         </div>
 
       </div>
+
+      {/* Real-Time TradingView Chart Quick Banner */}
+      {onSwitchToChart && (
+        <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <CandlestickChart className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm text-white flex items-center gap-2">
+                <span>TradingView Advanced Real-Time Chart</span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono font-bold">
+                  LIVE
+                </span>
+              </h4>
+              <p className="text-xs text-slate-400">
+                Switch to full interactive candlestick charts, multi-asset comparison, technical indicators & volume profiles for {financials.symbol}.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onSwitchToChart}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-sm"
+          >
+            <span>Open Real-Time Chart</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Chart 1: Cash Flow Projection & PV Discounting */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">

@@ -8,8 +8,10 @@ import { AnalyticsView } from './components/AnalyticsView';
 import { AssumptionsDrawer } from './components/AssumptionsDrawer';
 import { FormulaGuideModal } from './components/FormulaGuideModal';
 import { DataSourceModal } from './components/DataSourceModal';
+import { TradingViewChart } from './components/TradingViewChart';
 import { exportDCFToCsv } from './utils/exportCsv';
 import { getClientFallbackStockData } from './utils/fallbackGenerator';
+import { formatDividendYield } from './utils/formatters';
 import {
   TrendingUp,
   TrendingDown,
@@ -18,7 +20,8 @@ import {
   Info,
   DollarSign,
   HelpCircle,
-  Database
+  Database,
+  CandlestickChart
 } from 'lucide-react';
 
 export default function App() {
@@ -39,7 +42,7 @@ export default function App() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'spreadsheet' | 'analytics'>('spreadsheet');
+  const [viewMode, setViewMode] = useState<'spreadsheet' | 'analytics' | 'chart'>('spreadsheet');
   const [activeScenario, setActiveScenario] = useState<'base' | 'bull' | 'bear'>('base');
   const [isAssumptionsDrawerOpen, setIsAssumptionsDrawerOpen] = useState(false);
   const [isFormulaModalOpen, setIsFormulaModalOpen] = useState(false);
@@ -219,6 +222,9 @@ export default function App() {
                 <span className="text-xs text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded border border-slate-700/50">
                   {financials.exchange} • {financials.sector}
                 </span>
+                <span className="text-xs text-amber-300 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-800/50 font-mono">
+                  Div Yield: {formatDividendYield(financials.dividendYield)}
+                </span>
               </div>
               <p className="text-xs text-slate-400 max-w-2xl line-clamp-1 mt-0.5">
                 {financials.description}
@@ -235,8 +241,38 @@ export default function App() {
             
             <div className="h-8 w-px bg-slate-800 mx-1"></div>
 
+            {/* Annual Dividend Yield field */}
             <div className="text-right">
-              <span className="text-[10px] text-slate-400 uppercase font-semibold block">DCF Intrinsic</span>
+              <div className="flex items-center justify-end gap-1">
+                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Annual Div Yield</span>
+                {scenarioAssumptions.includeDividendReinvestment && (
+                  <span
+                    className="text-[9px] px-1 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono font-bold leading-none"
+                    title="Dividend Reinvestment (DRIP) active"
+                  >
+                    DRIP
+                  </span>
+                )}
+              </div>
+              <span className="text-lg font-black text-amber-400 font-mono">
+                {formatDividendYield(financials.dividendYield)}
+              </span>
+            </div>
+
+            <div className="h-8 w-px bg-slate-800 mx-1"></div>
+
+            <div className="text-right">
+              <div className="flex items-center justify-end gap-1">
+                <span className="text-[10px] text-slate-400 uppercase font-semibold block">DCF Intrinsic</span>
+                {scenarioAssumptions.includeDividendReinvestment && dcfResult.dividendReinvestmentBoost ? (
+                  <span
+                    className="text-[9px] px-1 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-mono font-bold leading-none"
+                    title={`Includes +$${dcfResult.dividendReinvestmentBoost.toFixed(2)} DRIP boost`}
+                  >
+                    +${dcfResult.dividendReinvestmentBoost.toFixed(2)}
+                  </span>
+                ) : null}
+              </div>
               <span className="text-lg font-black text-emerald-400 font-mono">
                 ${dcfResult.intrinsicValuePerShare.toFixed(2)}
               </span>
@@ -255,11 +291,26 @@ export default function App() {
                 {dcfResult.upsideDownsidePct > 0 ? '+' : ''}{dcfResult.upsideDownsidePct.toFixed(1)}%
               </span>
             </div>
+
+            <div className="h-8 w-px bg-slate-800 mx-1"></div>
+
+            {/* Quick Chart View Trigger */}
+            <button
+              onClick={() => setViewMode(viewMode === 'chart' ? 'spreadsheet' : 'chart')}
+              className={`p-2 rounded-lg border transition flex items-center justify-center ${
+                viewMode === 'chart'
+                  ? 'bg-emerald-600 text-white border-emerald-500 shadow-md'
+                  : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700 hover:text-white'
+              }`}
+              title={viewMode === 'chart' ? 'Return to DCF Spreadsheet' : 'Open Real-Time TradingView Chart'}
+            >
+              <CandlestickChart className="w-4 h-4 text-emerald-400" />
+            </button>
           </div>
         </div>
 
         {/* View Mode Switching */}
-        {viewMode === 'spreadsheet' ? (
+        {viewMode === 'spreadsheet' && (
           <SpreadsheetView
             financials={financials}
             assumptions={scenarioAssumptions}
@@ -270,11 +321,18 @@ export default function App() {
             onUpdateYearFcf={handleUpdateYearFcf}
             onResetCustomFcfs={handleResetCustomFcfs}
           />
-        ) : (
+        )}
+        {viewMode === 'analytics' && (
           <AnalyticsView
             financials={financials}
             assumptions={scenarioAssumptions}
             dcfResult={dcfResult}
+            onSwitchToChart={() => setViewMode('chart')}
+          />
+        )}
+        {viewMode === 'chart' && (
+          <TradingViewChart
+            financials={financials}
           />
         )}
 

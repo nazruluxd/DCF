@@ -21,6 +21,7 @@ export interface DCFAssumptions {
   pctDebt: number;           // Weight of debt (e.g. 0.25 = 25%)
   pctEquity: number;         // Weight of equity (e.g. 0.75 = 75%)
   projectionYears: number;   // Number of explicit projection years (default 7)
+  includeDividendReinvestment?: boolean; // Reinvest dividends in DCF intrinsic value calculation
 }
 
 export interface StockFinancials {
@@ -63,6 +64,10 @@ export interface DCFResult {
   marketPrice: number;
   upsideDownsidePct: number;
   isUndervalued: boolean;
+  includeDividendReinvestment?: boolean;
+  dividendYieldUsed?: number;
+  dripMultiplier?: number;
+  dividendReinvestmentBoost?: number;
   sensitivityMatrix: {
     growthRates: number[];
     waccRates: number[];
